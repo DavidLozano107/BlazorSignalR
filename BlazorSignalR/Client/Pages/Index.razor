@@ -1,0 +1,53 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable 
+
+<div class="row">
+	<div class="col-12">
+		<label>Text</label>
+		<input type="text" @bind="Text" />
+		<button @onclick="send">Enviar</button>
+	</div>
+</div>
+
+<div>
+	<div class="col-12">
+		@foreach (var t in texts)
+		{
+			<p>@t</p>
+		}
+	</div>
+</div>
+
+
+@code	{
+
+	public HubConnection hubConnection;
+	private string Text;
+
+	List<string> texts = new List<string>();
+
+	protected async override Task OnInitializedAsync()
+	{
+		hubConnection = new HubConnectionBuilder().WithUrl(NavigationManager.ToAbsoluteUri("/texthub")).Build();
+		hubConnection.On<string>("ReciveInformaction", (receiveText) =>
+		{
+			Text = "";
+
+			texts.Add(receiveText);
+			StateHasChanged();
+		});
+		await hubConnection.StartAsync();
+	}
+
+	async Task send()
+	{
+		await hubConnection.SendAsync("Send", Text);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		await hubConnection.DisposeAsync();
+	}
+}
